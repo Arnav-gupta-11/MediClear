@@ -13,7 +13,3 @@
 
 - PDF, DOCX, TXT  
 - JPG, JPEG, PNG, TIFF
-
-## Try it Out
-
-Test the app live here: [mediclear.streamlit.app](https://mediclear.streamlit.app)
