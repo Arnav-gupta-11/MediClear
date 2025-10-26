@@ -221,7 +221,6 @@ Follow this exact output format:
 3. **Definitions:** For each medical term or abbreviation in the document, give a 1-sentence plain-English definition.  
 4. **Follow-Up Questions for a Clinician:** Up to 3 polite, non-diagnostic questions a patient might ask.  
 5. **Notable Numeric Values:** List any numbers (lab results, vitals, measurements) and please provide their significance to the particular document, and please include what they are for. (do not guess).  
-6. **Disclaimer:** Always end with — *"This is for educational purposes only and is not medical advice."*
 
 Rules:  
 - Never give a diagnosis or treatment recommendation.  
@@ -245,6 +244,19 @@ def strip_long_whitespace(s: str) -> str:
 def home_page():
     st.markdown(
         """
+        <style>
+        /* Common container used by Streamlit for page content */
+        .block-container{padding-top:0.1rem !important;}
+        header{margin-top:0 !important; padding-top:0 !important;}
+        section[data-testid="stAppViewContainer"] .main{padding-top:0 !important;}
+        /* Tweak the top margin of the page title specifically */
+        h1{margin-top:0.2rem !important;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
         <h1 style="
             text-align: center;
             font-weight: 600;
@@ -254,7 +266,6 @@ def home_page():
             color: #1a1a1a;
             font-family: 'Open Sans', Arial, sans-serif;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-            padding-top: -0.1rem;
         ">
             MediClear
         </h1>
@@ -262,7 +273,7 @@ def home_page():
         unsafe_allow_html=True
     )
 
-    
+
     st.markdown("""
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                     padding: 2rem; border-radius: 12px; color: white; margin-bottom: 2rem;">
@@ -430,65 +441,59 @@ def sources():
         
     with st.expander("Technical Workflow"):
         st.markdown("""
-        MediClear processes medical documents and produces patient-friendly explanations through the following steps:
+        MediClear utilizes **AI-driven natural language processing (NLP)** and **optical character recognition (OCR)** to transform complex medical documents into patient-friendly summaries through the following pipeline:
 
-        1. **File Upload & Type Detection**
-        - Users upload medical documents (`PDF`, `DOCX`, `TXT`, or image formats `JPG/PNG/TIFF`).
-        - The system reads the file bytes and determines the file type.
-        - For images, OCR (`pytesseract`) is applied to extract text.
+1. **File Ingestion & Intelligent Type Detection**  
+   - Users upload medical documents (`PDF`, `DOCX`, `TXT`, or image formats `JPG/PNG/TIFF`).  
+   - A preprocessing layer reads file bytes and auto-detects MIME type for robust handling.  
+   - For image-based inputs, **OCR via `pytesseract`** extracts textual data with high accuracy.  
 
-        2. **Text Extraction**
-        - **PDF:** `pdfplumber` extracts text from all pages.
-        - **DOCX:** `python-docx` reads paragraphs and merges them.
-        - **TXT:** Decoded directly as UTF-8.
-        - **Images:** OCR converts visuals to text.
-        - Any errors are captured and returned as warnings to the user.
+2. **Automated Text Extraction**  
+   - **PDFs:** Parsed using `pdfplumber` to extract structured text across all pages.  
+   - **DOCX:** Processed via `python-docx` to concatenate paragraph-level data.  
+   - **TXT:** Decoded directly as UTF-8 plain text.  
+   - **Images:** Processed through OCR to convert visual data into analyzable text.  
+   - All parsing exceptions trigger structured error messages for transparency.  
 
-        3. **Document Classification**
-        - A generative model prompt classifies the text into one of:
-            `Lab Results`, `Radiology Report`, `Pathology Report`, `Discharge Summary`, `Prescription`, `Insurance EOB`, `Referral Letter`, `Surgical Note`, `Other`.
-        - The model output is displayed, and the user can manually override if needed.
+3. **AI-Powered Document Classification**  
+   - A **generative AI model** analyzes linguistic patterns and contextual cues to classify the document into one of:  
+     `Lab Results`, `Radiology Report`, `Pathology Report`, `Discharge Summary`, `Prescription`, `Insurance EOB`, `Referral Letter`, `Surgical Note`, or `Other`.  
+   - The classification layer uses **prompt-engineered inference** to ensure semantic accuracy.  
+   - Users can override or confirm classifications interactively.  
 
-        4. **Patient-Friendly Explanation Generation**
-        - The extracted text is fed into the **Explainer Prompt**:
-            - Produces document type confirmation.
-            - Summarizes key points (3–6 bullets).
-            - Provides definitions for medical terms.
-            - Suggests 0–3 follow-up questions to ask a clinician.
-            - Highlights numeric values with context.
-            - Adds a disclaimer for educational purposes.
-        - The Google Gemini API handles the text generation, ensuring language is simple and patient-friendly.
+4. **Patient-Friendly Explanation Generation (NLP Transformation)**  
+   - The extracted content is passed into an **AI explanation pipeline**, leveraging **Google Gemini’s multimodal generative API**.  
+   - The model performs:  
+     - Document type validation and summarization.  
+     - Extraction of key medical insights (3–6 bullet points).  
+     - **Entity recognition** for medical terminology with layman definitions.  
+     - Contextual highlighting of numeric and diagnostic values.  
+     - Generation of 0–3 personalized follow-up questions for clinician discussion.  
+   - The output is optimized for **readability, empathy, and comprehension**, with built-in medical disclaimers.  
 
-        5. **Display & Download**
-        - The explanation is displayed in the Streamlit app.
-        - Users can download the explanation as a `.txt` file for personal reference.
+5. **Dynamic Visualization & Export**  
+   - The summarized explanation is rendered in a **Streamlit-based interactive UI**.  
+   - Users can view structured insights and export explanations as `.txt` files for offline reference.  
 
-        6. **Error Handling & Fallbacks**
-        - If any module (`pdfplumber`, `python-docx`, `pytesseract`) is unavailable, appropriate messages are shown.
-        - Google Gemini API errors are caught and displayed with prompt previews.
-        - Users are informed if manual intervention is needed.
+6. **Error Handling & Modular Fallbacks**  
+   - Each subsystem (`pdfplumber`, `python-docx`, `pytesseract`, `Gemini API`) includes dedicated exception handling.  
+   - When external API errors occur, the app exposes a **debug-safe prompt trace** for transparency.  
+   - Users receive actionable alerts when manual review or re-upload is advised.  
 
-        **Technical Stack:**
-        - Streamlit for UI/UX
-        - `pdfplumber`, `python-docx`, `pytesseract` for document parsing
-        - Google Gemini generative model API for classification & explanation
-        - Python 3.10+ with standard libraries (`io`, `json`, `os`, `re`, `requests`)
+**Technical Stack Overview:**  
+- **Frontend/UI:** Streamlit  
+- **Core AI Modules:** Google Gemini Generative Model API (LLM-based NLP and reasoning)  
+- **Parsing Tools:** `pdfplumber`, `python-docx`, `pytesseract`  
+- **Backend Environment:** Python 3.10+ with `io`, `json`, `os`, `re`, `requests`  
+- **AI Paradigms Used:** Generative AI, Prompt Engineering, NLP, OCR, Context-Aware Summarization  
+
         """)
-    
-    
-    
-    
-    
-    
-    
 st.markdown("---")
-
-
-
 
 def main():
     home_page()
-    upload_page()
     sources()
+
+    upload_page()
 if __name__ == "__main__":
     main()
